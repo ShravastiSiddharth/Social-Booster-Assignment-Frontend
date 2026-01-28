@@ -2,6 +2,8 @@
 
 A modern, responsive frontend for the Task Manager application built with **Next.js 14**, **Tailwind CSS**, and **Shadcn UI**.
 
+<!-- Build Status: Updated workflow with Supabase env vars -->
+
 ## 🚀 Local Setup
 
 ### Prerequisites

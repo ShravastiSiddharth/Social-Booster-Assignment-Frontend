@@ -30,8 +30,20 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
+      - name: Create startup script
+        run: |
+          cat > startup.sh << 'EOF'
+          #!/bin/sh
+          cd /home/site/wwwroot
+          echo "Installing dependencies..."
+          npm ci --production
+          echo "Starting Next.js application..."
+          npm start
+          EOF
+          chmod +x startup.sh
+
       - name: Zip artifact for deployment
-        run: zip -r release.zip . -x "node_modules/*" ".git/*"
+        run: zip -r release.zip .next node_modules package.json package-lock.json next.config.ts tsconfig.json next-env.d.ts public startup.sh -x ".git/*"
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4

@@ -40,7 +40,7 @@ export default function GitReportPage() {
         setRepos([]);
 
         try {
-            const response = await fetch(`http://127.0.0.1:8000/api/integrations/github/repos/?username=${username}`);
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/integrations/github/repos/?username=${username}`);
 
             if (!response.ok) {
                 throw new Error("Failed to fetch repositories. User might not exist.");
@@ -68,7 +68,7 @@ export default function GitReportPage() {
 
             await Promise.all(batch.map(async (repo) => {
                 try {
-                    const res = await fetch(`http://127.0.0.1:8000/api/integrations/github/repo-commits/?username=${user}&owner=${repo.owner.login}&repo=${repo.name}`);
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/integrations/github/repo-commits/?username=${user}&owner=${repo.owner.login}&repo=${repo.name}`);
                     if (res.ok) {
                         const result = await res.json();
                         if (result.success) {

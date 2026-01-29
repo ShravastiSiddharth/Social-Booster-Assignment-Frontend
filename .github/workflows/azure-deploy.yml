@@ -41,6 +41,11 @@ jobs:
           cp -r .next/static deploy/.next/static
           cp -r public deploy/public
 
+      - name: Create deployment timestamp
+        run: |
+            echo "DEPLOY_TIME=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> deploy/deployment-info.txt
+            echo "COMMIT_SHA=${{ github.sha }}" >> deploy/deployment-info.txt     
+
       - name: Update package.json start script
         run: |
           node -e "const fs = require('fs'); const path = './deploy/package.json'; const pkg = require(path); pkg.scripts = { start: 'node server.js' }; fs.writeFileSync(path, JSON.stringify(pkg, null, 2));"
@@ -96,11 +101,6 @@ jobs:
 
       - name: Unzip artifact for deployment
         run: unzip release.zip
-
-      - name: Create deployment timestamp
-        run: |
-            echo "DEPLOY_TIME=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> deploy/deployment-info.txt
-            echo "COMMIT_SHA=${{ github.sha }}" >> deploy/deployment-info.txt 
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp

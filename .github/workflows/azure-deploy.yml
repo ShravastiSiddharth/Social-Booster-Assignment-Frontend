@@ -1,58 +1,59 @@
 name: Build and deploy Node.js app to Azure Web App
 on:
   push:
-    branches:
-      - master
+    branches: 
+    - master
   workflow_dispatch:
-  
 permissions:
   contents: read
-  actions: write
+  actions: write  
   
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment:
-      name: 'Production'
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Node.js version
-        uses: actions/setup-node@v3
+      - name: 🌱 Checkout to the branch
+        uses: actions/checkout@v4
+      
+      - name: 🍏 Set up Node.js version
+        uses: actions/setup-node@v4
         with:
-          node-version: '20.x'
-      - name: npm install, build, and test
+          node-version: "20.x"
+      
+      - name: ⚙️ npm install and build
         run: |
-          npm ci
-          npm run build
+          npm install
+          npm run build --if-present
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      - name: Copy standalone build
-        run: |
-          mkdir -p deploy
-          cp -r .next/standalone/* deploy/
-          mkdir -p deploy/.next
-          cp -r .next/static deploy/.next/static
-          cp -r public deploy/public
-
-      - name: Create deployment timestamp
-        run: |
-          echo "DEPLOY_TIME=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> deploy/deployment-info.txt
-          echo "COMMIT_SHA=${{ github.sha }}" >> deploy/deployment-info.txt
-          echo "BRANCH=${{ github.ref_name }}" >> deploy/deployment-info.txt
       
-      - name: Update package.json start script
+      - name: 📂 Copy standalone into the root
+        run: cp -R .next/standalone ./site-deploy
+      
+      - name: 📂 Copy static into the .next folder
+        run: cp -R .next/static ./site-deploy/.next/static
+      
+      - name: 📂 Copy Public folder
+        run: cp -R public ./site-deploy/public
+      
+      - name: 📦 Package Next application
         run: |
-          node -e "const fs = require('fs'); const path = './deploy/package.json'; const pkg = require(path); pkg.scripts = { start: 'node server.js' }; fs.writeFileSync(path, JSON.stringify(pkg, null, 2));"
-      - name: Copy package-lock.json
-        run: cp package-lock.json deploy/
-      - name: Remove .deployment file
-        run: rm -f deploy/.deployment
-      - name: Zip artifact for deployment
+          cd ./site-deploy
+          zip Nextjs-site.zip ./* .next -qr
+      
+      - name: 🔍 Diagnostics
         run: |
-          cd deploy
-          zip -r ../release.zip . -x ".git/*"
+          echo "=== Root directory ==="
+          ls -la
+          echo "=== .next directory ==="
+          ls -la .next
+          echo "=== site-deploy directory ==="
+          ls -la ./site-deploy
+          echo "=== site-deploy/.next directory ==="
+          ls -la ./site-deploy/.next
+      
       - name: Delete Old Artifacts
         uses: actions/github-script@v7
         with:
@@ -61,44 +62,60 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             })
-            
             res.data.artifacts
-              .filter(artifact => artifact.name === 'node-app')
+              .filter(artifact => artifact.name === 'Nextjs-site')
               .forEach(({ id }) => {
                 github.rest.actions.deleteArtifact({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   artifact_id: id,
                 })
-              })     
-      - name: Upload artifact for deployment job
+              })
+      
+      - name: ⬆️ Publish Next Application artifact
         uses: actions/upload-artifact@v4
         with:
-          name: node-app
-          path: release.zip
-          
+          name: Nextjs-site
+          path: ./site-deploy/Nextjs-site.zip
+  
   deploy:
     runs-on: ubuntu-latest
     needs: build
     environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+      name: Production
     steps:
-      - name: Download artifact from build job
+      - name: 🍏 Set up Node.js version
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+      
+      - name: ⬇️ Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: node-app
-      - name: Unzip artifact for deployment
-        run: unzip release.zip
+          name: Nextjs-site
       
-      - name: 'Deploy to Azure Web App'
+      - name: 🗝️ Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            rg=$(az webapp list --query "[?name=='${{ secrets.AZURE_WEBAPP_NAME }}'].resourceGroup" --output tsv)
+            echo Setting SCM_DO_BUILD_DURING_DEPLOYMENT=false on app service ${{ secrets.AZURE_WEBAPP_NAME }}
+            az webapp config appsettings set -n ${{ secrets.AZURE_WEBAPP_NAME}} -g $rg --settings SCM_DO_BUILD_DURING_DEPLOYMENT=false -o none
+            echo Setting --startup-file=\"node server.js\" on app service ${{ secrets.AZURE_WEBAPP_NAME }}
+            az webapp config set --startup-file="node server.js" -n ${{ secrets.AZURE_WEBAPP_NAME }} -g $rg -o none
+            sleep 10
+      
+      - name: 🚀 Deploy to Azure Web App
         id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          slot-name: 'Production'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
-          clean: true
-      - name: 🧹 Cleanup local files
-        run: rm -f release.zip
+          package: ${{ github.workspace }}/Nextjs-site.zip
+      
+      - name: 🧹 Cleanup
+        run: rm ${{ github.workspace }}/Nextjs-site.zip

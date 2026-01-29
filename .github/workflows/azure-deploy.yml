@@ -32,9 +32,14 @@ jobs:
         run: |
           mkdir -p deploy
           cp -r .next/standalone/* deploy/
-          mkdir -p deploy/.next
-          cp -r .next/static deploy/.next/static
+          if [ -d ".next/standalone/node_modules" ]; then
+          cp -r .next/standalone/node_modules deploy/
+          fi
+          mkdir -p deploy/.next/static
+          cp -r .next/static/* deploy/.next/static
+          if [ -d "public" ]; then
           cp -r public deploy/public
+          fi    
 
       - name: Create deployment timestamp
         run: |

@@ -145,9 +145,9 @@ export default function GitReportPage() {
                         {repos.map((repo) => (
                             <Card key={repo.id} className="flex flex-col h-full hover:shadow-lg transition-shadow">
                                 <CardHeader>
-                                    <div className="flex justify-between items-start gap-2">
-                                        <CardTitle className="text-xl font-bold truncate">
-                                            <Link href={repo.html_url} target="_blank" className="hover:underline flex items-center gap-2">
+                                    <div className="flex flex-wrap items-start gap-2">
+                                        <CardTitle className="text-xl font-bold flex-1 min-w-0">
+                                            <Link href={repo.html_url} target="_blank" className="hover:underline flex items-center gap-2 break-words">
                                                 {repo.name}
                                             </Link>
                                         </CardTitle>

@@ -142,9 +142,9 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-7">
                 {/* Charts Section */}
-                <Card className="col-span-4">
+                <Card className="md:col-span-1 lg:col-span-4">
                     <CardHeader>
                         <CardTitle>Task Trends (Last 30 Days)</CardTitle>
                     </CardHeader>
@@ -164,42 +164,50 @@ export default function DashboardPage() {
                 </Card>
 
                 {/* Status Breakdown Section */}
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Status Breakdown</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <PieChart>
-                                <Pie
-                                    data={statusData}
-                                    cx="50%"
-                                    cy="50%"
-                                    labelLine={false}
-                                    label={({ name, percent }: { name?: string; percent?: number }) => `${name || ''} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
-                                    outerRadius={80}
-                                    fill="#8884d8"
-                                    dataKey="value"
-                                >
-                                    {statusData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="mt-4 space-y-2">
-                            <h4 className="text-sm font-semibold">Upcoming Tasks</h4>
+                <div className="md:col-span-1 lg:col-span-3 space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Status Breakdown</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ResponsiveContainer width="100%" height={250}>
+                                <PieChart>
+                                    <Pie
+                                        data={statusData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={false}
+                                        outerRadius={80}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {statusData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Upcoming Tasks</CardTitle>
+                        </CardHeader>
+                        <CardContent>
                             {upcoming_tasks.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">No upcoming tasks.</p>
                             ) : (
                                 <ul className="space-y-2">
                                     {upcoming_tasks.map((task: any) => (
-                                        <li key={task.id} className="flex justify-between items-center text-sm border-b pb-1 last:border-0">
-                                            <span className="truncate max-w-[150px]">{task.title}</span>
-                                            <span className={`text-xs px-2 py-0.5 rounded-full ${task.days_until_due < 0 ? 'bg-red-100 text-red-800' :
-                                                task.days_until_due <= 1 ? 'bg-orange-100 text-orange-800' :
-                                                    'bg-green-100 text-green-800'
+                                        <li key={task.id} className="flex justify-between items-center text-sm border-b pb-1 last:border-0 hover:bg-muted/50 p-1 rounded transition-colors">
+                                            <span className="truncate max-w-[150px] font-medium">{task.title}</span>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${task.days_until_due < 0 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' :
+                                                task.days_until_due <= 1 ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' :
+                                                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                                 }`}>
                                                 {task.days_until_due < 0 ? 'Overdue' :
                                                     task.days_until_due === 0 ? 'Today' :
@@ -209,9 +217,9 @@ export default function DashboardPage() {
                                     ))}
                                 </ul>
                             )}
-                        </div>
-                    </CardContent>
-                </Card>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );
